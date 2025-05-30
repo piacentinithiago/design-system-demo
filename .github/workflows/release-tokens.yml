@@ -1,0 +1,73 @@
+name: Build & Release Design Tokens
+
+on:
+  push:
+    branches:
+      - design # Dispara quando há um push no branch 'design'
+    paths:
+      - 'tokens/**'
+      - 'tokens.config.js'
+  # Adicionar o gatilho para tags, para criar releases automáticas
+  create:
+    tags:
+      - 'v*' # Dispara quando uma tag que começa com 'v' (ex: v1.0.0) é criada
+  workflow_dispatch: # Permite disparo manual
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Permissões necessárias para criar tags/releases e fazer push
+    permissions:
+      contents: write # Para commitar os arquivos gerados E criar Releases
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necessário para o git tag se o histórico for curto
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Style Dictionary tokens
+        run: npm run build:tokens
+
+      # --- Bloco de Commit dos Arquivos Gerados (Para o branch 'design') ---
+      - name: Commit generated files to 'design' branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/design' # Apenas no push para o branch 'design'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add build/ # Adiciona todos os arquivos gerados
+          # Verifica se há alterações para commitar e evita commits vazios
+          git diff --staged --quiet || git commit -m "chore(tokens): auto-update generated tokens [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Bloco de Criação de Release (Para tags) ---
+      - name: Create GitHub Release
+        if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') # Apenas quando uma tag 'v*' é criada
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }} # O nome da tag (ex: v1.0.0)
+          name: Release ${{ github.ref_name }}
+          body: |
+            # Release Notes for ${{ github.ref_name }}
+            Automatically generated release for new design tokens.
+            Please refer to the commit history for detailed changes.
+            # Você pode adicionar um passo aqui para gerar o changelog com auto-changelog e usar ele aqui
+          draft: false # Altere para true se quiser revisar antes de publicar
+          prerelease: false # Altere para true se for uma pre-release
+          # Anexe os arquivos gerados
+          files: |
+            build/css/variables.css
+            # Se tiver outros, adicione aqui (ex: build/js/tokens.js)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
