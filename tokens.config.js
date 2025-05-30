@@ -9,14 +9,14 @@ module.exports = {
         destination: 'variables.css',
         format: 'css/variables'
       }]
-    },
-    scss: {
-      transformGroup: 'scss',
-      buildPath: 'build/scss/',
-      files: [{
-        destination: 'variables.scss',
-        format: 'scss/variables'
-      }]
-    },
+    }
+    // scss: {
+    //   transformGroup: 'scss',
+    //   buildPath: 'build/scss/',
+    //   files: [{
+    //     destination: 'variables.scss',
+    //     format: 'scss/variables'
+    //   }]
+    // },
   }
 };
