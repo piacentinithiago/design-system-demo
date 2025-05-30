@@ -5,69 +5,94 @@ on:
     branches:
       - design # Dispara quando há um push no branch 'design'
     paths:
-      - 'tokens/**'
-      - 'tokens.config.js'
-  # Adicionar o gatilho para tags, para criar releases automáticas
+      - 'tokens/**'       # Quando os arquivos de tokens JSON mudam
+      - 'tokens.config.js' # Quando a configuração do Style Dictionary muda
   create:
     tags:
       - 'v*' # Dispara quando uma tag que começa com 'v' (ex: v1.0.0) é criada
-  workflow_dispatch: # Permite disparo manual
+  workflow_dispatch: # Permite disparar o workflow manualmente no GitHub
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Permissões necessárias para criar tags/releases e fazer push
     permissions:
-      contents: write # Para commitar os arquivos gerados E criar Releases
+      contents: write # ESSENCIAL: Permite que o GITHUB_TOKEN faça commit, push e crie Releases/tags
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Necessário para o git tag se o histórico for curto
+          fetch-depth: 0 # Necessário para o git tag e para o git pull --rebase funcionar corretamente
 
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: '22' # Use a versão recomendada do Node.js
+          cache: 'npm'       # Habilita o cache de dependências para instalações mais rápidas
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm install
 
-      - name: Build Style Dictionary tokens
+      - name: Build Style Dictionary Tokens
         run: npm run build:tokens
 
-      # --- Bloco de Commit dos Arquivos Gerados (Para o branch 'design') ---
-      - name: Commit generated files to 'design' branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/design' # Apenas no push para o branch 'design'
+      - name: Configure Git for Auto-Commit
+        # Configura o usuário e e-mail do Git para o bot de ações do GitHub
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add build/ # Adiciona todos os arquivos gerados
-          # Verifica se há alterações para commitar e evita commits vazios
-          git diff --staged --quiet || git commit -m "chore(tokens): auto-update generated tokens [skip ci]"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # --- Bloco de Criação de Release (Para tags) ---
+      - name: Commit Generated Files to 'design' branch
+        # Este passo é executado APENAS quando há um push para o branch 'design'
+        # e não é um evento de criação de tag (que é tratado pelo passo de Release).
+        if: github.event_name == 'push' && github.ref == 'refs/heads/design'
+        run: |
+          git add build/ # Adiciona todos os arquivos gerados (ex: build/css/variables.css)
+
+          # Verifica se há alterações para commitar.
+          # Se não houver, o comando 'git diff' retorna sucesso e a condição '||' é pulada.
+          # Se houver, 'git diff' falha, e o 'git commit' é executado.
+          if git diff --staged --quiet; then
+            echo "No changes in generated files. Skipping commit and push."
+          else
+            git commit -m "chore(tokens): auto-update generated tokens [skip ci]"
+
+            # Puxa as últimas alterações do branch remoto e rebaseia seus commits locais sobre elas.
+            # Isso é crucial para resolver o erro "rejected push" (fetch first) causado por race conditions.
+            # --autostash e --autostash-clear gerenciam a área de staging temporariamente.
+            git pull --rebase --autostash --autostash-clear origin design
+
+            # Tenta fazer o push novamente após o rebase.
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # O token de autenticação fornecido pelo GitHub Actions
+
       - name: Create GitHub Release
-        if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v') # Apenas quando uma tag 'v*' é criada
+        # Este passo é executado APENAS quando uma tag Git que começa com 'v' é criada (ex: v1.0.0).
+        if: github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v')
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v1 # Usa uma action de terceiros para criar Releases
         with:
-          tag_name: ${{ github.ref_name }} # O nome da tag (ex: v1.0.0)
+          tag_name: ${{ github.ref_name }} # O nome da tag (ex: v1.0.0) será o nome da Release
           name: Release ${{ github.ref_name }}
           body: |
             # Release Notes for ${{ github.ref_name }}
-            Automatically generated release for new design tokens.
-            Please refer to the commit history for detailed changes.
-            # Você pode adicionar um passo aqui para gerar o changelog com auto-changelog e usar ele aqui
-          draft: false # Altere para true se quiser revisar antes de publicar
-          prerelease: false # Altere para true se for uma pre-release
-          # Anexe os arquivos gerados
+
+            This release includes the latest generated design tokens.
+
+            To see detailed changes, please refer to the commit history for this tag:
+            https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}
+
+            ---
+            _Automatically generated by GitHub Actions._
+          draft: false      # Altere para 'true' se quiser que a Release seja um rascunho para revisão
+          prerelease: false # Altere para 'true' se for uma versão pré-lançamento (beta, alpha)
+          # Anexa os arquivos gerados pela Style Dictionary ao Release.
+          # Certifique-se de que esses caminhos correspondem ao seu 'tokens.config.js'.
           files: |
             build/css/variables.css
-            # Se tiver outros, adicione aqui (ex: build/js/tokens.js)
+            build/scss/variables.scss # Exemplo: Se você gerar SCSS também
+            # Adicione outros arquivos gerados aqui se houver (ex: build/js/tokens.js)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Necessário para a action criar a Release
