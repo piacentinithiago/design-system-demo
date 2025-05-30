@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:tokens": "style-dictionary build --config tokens.config.js",
-    "prepublishOnly": "npm run build:tokens"
+    "build:tokens": "style-dictionary build --config tokens.config.js"
   },
   "keywords": [],
   "author": "Thiago Piacentini",
