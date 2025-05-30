@@ -95,4 +95,4 @@ jobs:
             build/scss/variables.scss # Exemplo: Se você gerar SCSS também
             # Adicione outros arquivos gerados aqui se houver (ex: build/js/tokens.js)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Necessário para a action criar a Release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Necessário para a action criar a Release.
