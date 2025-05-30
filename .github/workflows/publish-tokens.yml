@@ -1,0 +1,70 @@
+name: Publish Design Tokens
+
+on:
+  push:
+    branches:
+      - main # OU 'master', dependendo do nome do seu branch principal
+    paths:
+      - 'tokens/**' # Dispara quando os arquivos de tokens JSON são alterados
+      - 'tokens.config.js' # Também dispara se a configuração mudar
+  workflow_dispatch: # Permite disparar o workflow manualmente no GitHub
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Permite que o GITHUB_TOKEN crie commits e tags
+      packages: write # Permite que o GITHUB_TOKEN publique pacotes no GitHub Packages
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Use uma versão recomendada do Node.js, como 22 ou superior
+          cache: 'npm' # Habilita o cache de dependências para instalações mais rápidas
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Configure Git for publishing
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish to GitHub Packages
+        id: publish_step
+        run: |
+          # Define o registro do npm para usar o GitHub Packages
+          # Substitua 'your-github-username-or-org' pelo seu nome de usuário ou organização do GitHub
+          npm config set '@your-github-username-or-org:registry' 'https://npm.pkg.github.com/'
+          npm config set '//npm.pkg.github.com/:_authToken' ${{ secrets.GITHUB_TOKEN }}
+
+          # Incrementa a versão do pacote (patch, minor, major)
+          # 'patch' é bom para pequenas alterações de tokens
+          # --no-git-tag-version impede que 'npm version' crie uma tag local,
+          # o que é útil se você for criar tags manualmente depois ou não quiser tags para cada patch
+          npm version patch --no-git-tag-version -m "Release: v%s"
+
+          # Publica o pacote para o GitHub Packages
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Necessário para autenticação
+
+      - name: Create Git Tag (opcional, mas recomendado para releases)
+        # Este passo cria uma tag Git após a publicação bem-sucedida,
+        # ligando a versão do pacote a um ponto específico no histórico do Git.
+        run: |
+          git tag v$(node -p "require('./package.json').version")
+          git push origin v$(node -p "require('./package.json').version")
+        # Só executa se o passo de publicação foi bem-sucedido e estamos no branch principal
+        if: success() && github.ref == 'refs/heads/main'
+
+      - name: Commit and Push package.json version update
+        run: |
+          git add package.json
+          git commit -m "chore(release): update package version to $(node -p "require('./package.json').version") [skip ci]"
+          git push origin main # OU 'master'
+        # Evita commits vazios se a versão não mudou ou já foi comitada
+        if: steps.publish_step.outcome == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
