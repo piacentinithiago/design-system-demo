@@ -25,6 +25,14 @@
         "value": "#36b37e",
         "type": "color"
       },
+      "light": {
+        "value": "#ffffff",
+        "type": "color"
+      },
+      "dark": {
+        "value": "#172b4d",
+        "type": "color"
+      },
       "info": {
         "value": "#00b8d9",
         "type": "color"
