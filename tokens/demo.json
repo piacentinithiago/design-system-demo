@@ -22,7 +22,7 @@
         "type": "color"
       },
       "success": {
-        "value": "#36b37e",
+        "value": "#00f416",
         "type": "color"
       },
       "light": {
@@ -40,7 +40,7 @@
     },
     "text": {
       "dark": {
-        "value": "#333",
+        "value": "#333333",
         "type": "color"
       },
       "light": {
