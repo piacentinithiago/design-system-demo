@@ -4,12 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:tokens": "style-dictionary build --config tokens.config.js",
+    "prepublishOnly": "npm run build:tokens"
   },
   "keywords": [],
   "author": "Thiago Piacentini",
   "license": "ISC",
   "dependencies": {
     "style-dictionary": "^5.0.0"
+  },
+  "devDependencies": {
+    "auto-changelog": "^2.5.0"
   }
 }
