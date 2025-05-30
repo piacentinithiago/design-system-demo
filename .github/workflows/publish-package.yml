@@ -28,6 +28,11 @@ jobs:
           registry-url: https://npm.pkg.github.com/
           scope: '@piacentinithiago'
 
+      - name: Configure .npmrc for GitHub Packages
+        run: |
+          echo "@piacentinithiago:registry=https://npm.pkg.github.com/" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+
       - name: Install dependencies
         run: npm install
 
@@ -36,5 +41,3 @@ jobs:
 
       - name: Publish package to GitHub Packages
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
