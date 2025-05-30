@@ -1,0 +1,29 @@
+/**
+ * Do not edit directly, this file was auto-generated.
+ */
+
+:root {
+  --color-background-default: #cccccc;
+  --color-background-primary: #0052cc;
+  --color-background-secondary: #f4f5f7;
+  --color-background-danger: #de350b;
+  --color-background-warning: #ffab00;
+  --color-background-success: #36b37e;
+  --color-background-info: #00b8d9;
+  --color-text-dark: #172b4d;
+  --color-text-default: #172b4d;
+  --color-text-on-primary: #ffffff;
+  --color-text-on-secondary: #172b4d;
+  --color-text-on-danger: #ffffff;
+  --color-text-on-warning: #172b4d;
+  --color-text-on-success: #ffffff;
+  --color-text-on-info: #ffffff;
+  --color-border-default: #dfe1e6;
+  --color-link: #0052cc;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --font-size-md: 16px;
+  --radius-md: 4px;
+  --border-width-default: 1px;
+  --opacity-disabled: 0.6;
+}
