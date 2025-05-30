@@ -29,4 +29,12 @@ jobs:
           scope: '@piacentinithiago'
 
       - name: Install dependencies
-        run: npm inst
+        run: npm install
+
+      - name: Build tokens
+        run: npm run build:tokens
+
+      - name: Publish package to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
