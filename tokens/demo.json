@@ -43,6 +43,10 @@
         "value": "#172b4d",
         "type": "color"
       },
+      "light": {
+        "value": "#ffffff",
+        "type": "color"
+      },
       "default": {
         "value": "#172b4d",
         "type": "color"
