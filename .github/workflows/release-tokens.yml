@@ -43,30 +43,36 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Commit Generated Files to 'design' branch
-        # Este passo é executado APENAS quando há um push para o branch 'design'
-        # e não é um evento de criação de tag (que é tratado pelo passo de Release).
         if: github.event_name == 'push' && github.ref == 'refs/heads/design'
         run: |
-          git add build/ # Adiciona todos os arquivos gerados (ex: build/css/variables.css)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Verifica se há alterações para commitar.
-          # Se não houver, o comando 'git diff' retorna sucesso e a condição '||' é pulada.
-          # Se houver, 'git diff' falha, e o 'git commit' é executado.
+          git add build/ # Adiciona todos os arquivos gerados
+
           if git diff --staged --quiet; then
             echo "No changes in generated files. Skipping commit and push."
           else
             git commit -m "chore(tokens): auto-update generated tokens [skip ci]"
 
-            # Puxa as últimas alterações do branch remoto e rebaseia seus commits locais sobre elas.
-            # Isso é crucial para resolver o erro "rejected push" (fetch first) causado por race conditions.
-            # --autostash e --autostash-clear gerenciam a área de staging temporariamente.
-            git pull --rebase --autostash --autostash-clear origin design
+            # Tenta puxar e rebasear as últimas alterações.
+            # Se houverem mudanças no remoto, ele tentará integrar.
+            # Se for uma race condition, isso geralmente resolve.
+            git pull --rebase --autostash --autostash-clear origin design || {
+              echo "Error: git pull --rebase failed. This might indicate a real merge conflict or an issue with the remote."
+              # Tente um push forçado com lease como último recurso.
+              # O --force-with-lease é mais seguro que --force puro.
+              # Ele só força se o branch remoto não foi atualizado desde o último pull/fetch.
+              echo "Attempting git push --force-with-lease..."
+              git push --force-with-lease
+              exit 0 # Sai com sucesso se o force-with-lease funcionou
+            }
 
-            # Tenta fazer o push novamente após o rebase.
+            # Se o rebase foi bem-sucedido, tente o push normal
             git push
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # O token de autenticação fornecido pelo GitHub Actions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         # Este passo é executado APENAS quando uma tag Git que começa com 'v' é criada (ex: v1.0.0).
